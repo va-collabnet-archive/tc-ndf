@@ -55,7 +55,7 @@ public class NDFImportMojo extends AbstractMojo
 	private PropertyType attributes = new PT_Attributes(uuidRoot_);
 	private PropertyType contentVersion = new PT_ContentVersion(uuidRoot_);
 	private PropertyType descriptions = new PT_Descriptions(uuidRoot_);
-	private PropertyType refsets = new PT_RefSets(uuidRoot_);
+	private PropertyType refsets;
 	
 	private EConceptUtility eConceptUtil_;
 	private DataOutputStream dos;
@@ -111,44 +111,20 @@ public class NDFImportMojo extends AbstractMojo
 
 			EConcept metaDataRoot = eConceptUtil_.createConcept("NDF Metadata", ArchitectonicAuxiliary.Concept.ARCHITECTONIC_ROOT_CONCEPT.getPrimoridalUid());
 			metaDataRoot.writeExternal(dos);
-			
-			List<PropertyType> allPropertyTypes = new ArrayList<PropertyType>(Arrays.asList(attributes, contentVersion, descriptions));
-			eConceptUtil_.loadMetaDataItems(allPropertyTypes, metaDataRoot.getPrimordialUuid(), dos);
-			
-			//This is chosen to line up with other va refsets
+
+            //This is chosen to line up with other va refsets
             EConcept vaRefsets = eConceptUtil_.createAndStoreMetaDataConcept(ConverterUUID.nameUUIDFromBytes(("gov.va.refset.VA Refsets").getBytes()), 
                     "VA Refsets", ConceptConstants.REFSET.getUuids()[0], dos);
             
             EConcept ndfRefsets = eConceptUtil_.createAndStoreMetaDataConcept("NDF Refsets", vaRefsets.getPrimordialUuid(), dos);
+            
+            //this must be stored later....
+            EConcept ndfAllConceptRefset = eConceptUtil_.createConcept("All NDF Concepts", ndfRefsets.getPrimordialUuid());
+            
+            refsets = new PT_RefSets(uuidRoot_, ndfRefsets.getPrimordialUuid());
 			
-			//handle refsets myself - they get two parents.
-			EConcept refsetMetaData = eConceptUtil_.createAndStoreMetaDataConcept(refsets.getPropertyTypeUUID(), refsets.getPropertyTypeDescription(), metaDataRoot.getPrimordialUuid(), dos);
-			for (Property p : refsets.getProperties())
-			{
-			    String name = null;
-			    String synonym = null;
-			    if (p.getUseSrcDescriptionForFSN() && p.getSourcePropertyDescription() != null)
-			    {
-			        name = p.getSourcePropertyDescription();
-			        synonym = p.getSourcePropertyName();
-			    }
-			    else
-			    {
-			        name = p.getSourcePropertyName();
-			        synonym = p.getSourcePropertyDescription();
-			    }
-			    EConcept refSet = eConceptUtil_.createConcept(p.getUUID(),name , null);
-			    if (synonym != null)
-			    {
-			        eConceptUtil_.addDescription(refSet, synonym, eConceptUtil_.synonymAcceptableUuid_, false);
-			    }
-			    eConceptUtil_.addRelationship(refSet, ndfRefsets.getPrimordialUuid());
-			    eConceptUtil_.addRelationship(refSet, refsetMetaData.getPrimordialUuid());
-			    refSet.writeExternal(dos);
-			}
-			
-			
-			allPropertyTypes.add(refsets);
+            List<PropertyType> allPropertyTypes = new ArrayList<PropertyType>(Arrays.asList(attributes, contentVersion, descriptions, refsets));
+			eConceptUtil_.loadMetaDataItems(allPropertyTypes, metaDataRoot.getPrimordialUuid(), dos);
 			
 			ConsoleUtil.println("Metadata Summary");
 			for (String s : eConceptUtil_.getLoadStats().getSummary())
@@ -256,10 +232,12 @@ public class NDFImportMojo extends AbstractMojo
 			eConceptUtil_.addStringAnnotation(ndfRoot, srcContentVersion, BaseContentVersion.RELEASE.getProperty().getUUID(), false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, loaderVersion, BaseContentVersion.LOADER_VERSION.getProperty().getUUID(), false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, tableName, ContentVersion.TABLE_NAME.getProperty().getUUID(), false);
-						
-			ndfRoot.writeExternal(dos);
 			
+			ndfRoot.writeExternal(dos);
+						
 			HashMap<String, UUID> classToHierarchy = new HashMap<String, UUID>();
+			
+			//We create a hierarchy that goes from Class -> Generic -> VA_Product
 			
 			//Create the basic Class hierarchy
 			String lastLeadingChars = "";
@@ -326,7 +304,7 @@ public class NDFImportMojo extends AbstractMojo
                 for (String generic : item.getValue())
                 {
                     EConcept concept = eConceptUtil_.createConcept(item.getKey() + ":" + generic, generic);
-                    eConceptUtil_.addDescription(concept, generic, descriptions.getProperty("GENERIC").getUUID(), false);
+                    eConceptUtil_.addUuidAnnotation(concept.getConceptAttributes(), null, refsets.getProperty("GENERIC").getUUID());
                     eConceptUtil_.addRelationship(concept, classUUID);
                     class_genericToUUID.put(item.getKey() + ":" + generic, concept.getPrimordialUuid());
                     concept.writeExternal(dos);
@@ -367,6 +345,7 @@ public class NDFImportMojo extends AbstractMojo
                 String fsn = asString(row.get("VA_PRODUCT"));
 
                 EConcept concept = eConceptUtil_.createConcept(conceptId, fsn, null);
+                concept.setAnnotationIndexStyleRefex(true);
                 String className = asString(row.get("VA_CLASS"));
                 String generic = asString(row.get("GENERIC"));
                 UUID parent = class_genericToUUID.get(className + ":" + generic);
@@ -378,7 +357,8 @@ public class NDFImportMojo extends AbstractMojo
                 {
                     eConceptUtil_.addRelationship(concept, parent);
                 }
-                
+
+                boolean retired = false;
                 for (String type : row.keySet())
                 {
                     Property p = propertyMap.get(type);
@@ -396,21 +376,31 @@ public class NDFImportMojo extends AbstractMojo
                         if (type.equals("I_DATE_VAP"))
                         {
                             concept.getConceptAttributes().setStatusUuid(eConceptUtil_.statusRetiredUuid_);
+                            retired = true;
                         }
-                             eConceptUtil_.addStringAnnotation(concept, value, p.getUUID(), false);
+                        eConceptUtil_.addStringAnnotation(concept, value, p.getUUID(), false);
                      }
                     else if (p.getPropertyType() instanceof PT_RefSets)
                     {
                         if (type.equals("VA_CLASS"))
                         {
-                            //Link to the class concept we created 
+                            //Link to the class concept we created - up two levels in the hierarchy
                             UUID classUUID = classToHierarchy.get(value);
                             if (classUUID == null)
                             {
                                 ConsoleUtil.printErrorln("Oops - null class");
                                 continue;
                             }
-                            eConceptUtil_.addUuidAnnotation(concept.getConceptAttributes(), refsets.getProperty("VA_CLASS").getUUID(), classUUID);
+                            eConceptUtil_.addUuidAnnotation(concept.getConceptAttributes(), classUUID, refsets.getProperty("VA_CLASS").getUUID());
+                        }
+                        else if (type.equals("GENERIC"))
+                        {
+                            //we are nested under the generic value.
+                            eConceptUtil_.addUuidAnnotation(concept.getConceptAttributes(), parent, refsets.getProperty("GENERIC").getUUID());
+                        }
+                        else
+                        {
+                            ConsoleUtil.printErrorln("Unhandled refset type");
                         }
                     }
                     else if (p.getPropertyType() instanceof PT_Descriptions)
@@ -425,6 +415,7 @@ public class NDFImportMojo extends AbstractMojo
                 ConsoleUtil.showProgress();
 
                 concept.writeExternal(dos);
+                eConceptUtil_.addRefsetMember(ndfAllConceptRefset, concept.getPrimordialUuid(), !retired, null);
             }
             
             if (duplicates.size() > 0)
@@ -440,7 +431,9 @@ public class NDFImportMojo extends AbstractMojo
                 }
                 fw.close();
             }
-
+            
+            ndfAllConceptRefset.writeExternal(dos);
+            
 			dos.flush();
 			dos.close();
 
