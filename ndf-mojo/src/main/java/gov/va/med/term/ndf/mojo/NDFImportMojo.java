@@ -2,9 +2,9 @@ package gov.va.med.term.ndf.mojo;
 
 import gov.va.med.term.ndf.propertyTypes.PT_Attributes;
 import gov.va.med.term.ndf.propertyTypes.PT_ContentVersion;
-import gov.va.med.term.ndf.propertyTypes.PT_RefSets;
 import gov.va.med.term.ndf.propertyTypes.PT_ContentVersion.ContentVersion;
 import gov.va.med.term.ndf.propertyTypes.PT_Descriptions;
+import gov.va.med.term.ndf.propertyTypes.PT_RefSets;
 import gov.va.med.term.ndf.util.AlphanumComparator;
 import gov.va.oia.terminology.converters.sharedUtils.ConsoleUtil;
 import gov.va.oia.terminology.converters.sharedUtils.EConceptUtility;
@@ -34,7 +34,6 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.dwfa.ace.refset.ConceptConstants;
 import org.dwfa.cement.ArchitectonicAuxiliary;
 import org.ihtsdo.etypes.EConcept;
 import com.healthmarketscience.jackcess.Column;
@@ -113,8 +112,8 @@ public class NDFImportMojo extends AbstractMojo
 			metaDataRoot.writeExternal(dos);
 
             //This is chosen to line up with other va refsets
-            EConcept vaRefsets = eConceptUtil_.createAndStoreMetaDataConcept(ConverterUUID.nameUUIDFromBytes(("gov.va.refset.VA Refsets").getBytes()), 
-                    "VA Refsets", ConceptConstants.REFSET.getUuids()[0], dos);
+            EConcept vaRefsets = eConceptUtil_.createVARefsetRootConcept();
+            vaRefsets.writeExternal(dos);
             
             EConcept ndfRefsets = eConceptUtil_.createAndStoreMetaDataConcept("NDF Refsets", vaRefsets.getPrimordialUuid(), dos);
             
@@ -344,7 +343,7 @@ public class NDFImportMojo extends AbstractMojo
                 
                 String fsn = asString(row.get("VA_PRODUCT"));
 
-                EConcept concept = eConceptUtil_.createConcept(conceptId, fsn, null);
+                EConcept concept = eConceptUtil_.createConcept(conceptId, fsn);
                 concept.setAnnotationIndexStyleRefex(true);
                 String className = asString(row.get("VA_CLASS"));
                 String generic = asString(row.get("GENERIC"));
