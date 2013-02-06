@@ -92,7 +92,7 @@ public class NDFImportMojo extends AbstractMojo
      * @parameter expression="${project.version}"
      * @required
      */
-    private String srcContentVersion;
+    private String releaseVersion;
 
 	public void execute() throws MojoExecutionException
 	{
@@ -228,7 +228,7 @@ public class NDFImportMojo extends AbstractMojo
 			}
 			
 			EConcept ndfRoot = eConceptUtil_.createConcept("NDF");
-			eConceptUtil_.addStringAnnotation(ndfRoot, srcContentVersion, BaseContentVersion.RELEASE.getProperty().getUUID(), false);
+			eConceptUtil_.addStringAnnotation(ndfRoot, releaseVersion, BaseContentVersion.RELEASE.getProperty().getUUID(), false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, loaderVersion, BaseContentVersion.LOADER_VERSION.getProperty().getUUID(), false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, tableName, ContentVersion.TABLE_NAME.getProperty().getUUID(), false);
 			
