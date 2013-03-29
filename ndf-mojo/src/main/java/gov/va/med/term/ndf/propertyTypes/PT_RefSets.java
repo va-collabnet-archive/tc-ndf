@@ -13,6 +13,5 @@ public class PT_RefSets extends BPT_Refsets
 	{
 		super(uuidRoot, refsetIdentityParent);
 		addProperty("VA_CLASS", "VA Class");
-		addProperty("GENERIC", "VA Generic Name");
 	}
 }

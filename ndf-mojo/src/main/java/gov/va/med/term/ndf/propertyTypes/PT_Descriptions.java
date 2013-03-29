@@ -9,8 +9,8 @@ public class PT_Descriptions extends BPT_Descriptions
 	{
 		super(uuidRoot);
 		addProperty("TRADE", "Trade name of product");
-		addProperty("VA_PRODUCT", "VA Product Name");
 		addProperty("NF_NAME", "National Formulary name, Combine generic an dosage form");
+		addProperty("VA_PRODUCT", "VA Product Name");
 		addProperty("VA_PRN", "VA Print Name (name that goes on the prescription label)");
 	}
 }
