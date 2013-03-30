@@ -538,7 +538,7 @@ public class NDFImportMojo extends AbstractMojo
 			// this could be removed from final release. Just added to help debug editor problems.
 			ConsoleUtil.println("Dumping UUID Debug File");
 			ConverterUUID.dump(new File(outputDirectory, "ndfUuidDebugMap.txt"));
-
+			ConsoleUtil.writeOutputToFile(new File(outputDirectory, "ConsoleOutput.txt").toPath());
 		}
 		catch (Exception ex)
 		{
