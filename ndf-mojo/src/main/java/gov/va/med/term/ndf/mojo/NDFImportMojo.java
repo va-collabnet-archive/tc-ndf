@@ -125,6 +125,7 @@ public class NDFImportMojo extends AbstractMojo
 			File touch = new File(outputDirectory, "ndfEConcepts.jbin");
 			dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(touch)));
 
+			ConverterUUID.enableDupeUUIDException = true;
 			eConceptUtil_ = new EConceptUtility(uuidRoot_, "NDF Path", dos);
 
 			EConcept metaDataRoot = eConceptUtil_.createConcept("NDF Metadata", ArchitectonicAuxiliary.Concept.ARCHITECTONIC_ROOT_CONCEPT.getPrimoridalUid());
