@@ -7,10 +7,13 @@ public class PT_Descriptions extends BPT_Descriptions
 
 	public PT_Descriptions(String uuidRoot)
 	{
-		super(uuidRoot);
-		addProperty("TRADE", "Trade name of product");
-		addProperty("NF_NAME", "National Formulary name, Combine generic an dosage form");
-		addProperty("VA_PRODUCT", "VA Product Name");
-		addProperty("VA_PRN", "VA Print Name (name that goes on the prescription label)");
+		super(uuidRoot, "NDF");
+		addProperty("TRADE", "Trade Name", "Trade name of product", false, SYNONYM + 2);
+		addProperty("NF_NAME", "National Formulary name", "National Formulary name, Combine generic an dosage form", false, SYNONYM + 1);
+		addProperty("VA_PRODUCT", "VA Product Name", null, false, FSN);
+		addProperty("VA_PRN", "VA Print Name", "VA Print Name (name that goes on the prescription label)", false, SYNONYM);
+		addProperty("GENERIC", "VA Generic Name", null, false, SYNONYM + 3);
+		
+		addProperty("VA Category", "VA Category", null, false, FSN);  //from spreadsheet
 	}
 }

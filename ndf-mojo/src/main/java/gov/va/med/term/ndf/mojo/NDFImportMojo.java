@@ -13,6 +13,7 @@ import gov.va.oia.terminology.converters.sharedUtils.Unzip;
 import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.BPT_ContentVersion.BaseContentVersion;
 import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.Property;
 import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.PropertyType;
+import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.ValuePropertyPair;
 import gov.va.oia.terminology.converters.sharedUtils.stats.ConverterUUID;
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
@@ -282,7 +283,9 @@ public class NDFImportMojo extends AbstractMojo
 				lastLeadingChars = leadingChars;
 				leadingChars = entry.getKey().substring(0, 2);
 
-				EConcept concept = eConceptUtil_.createConcept(entry.getKey(), entry.getValue());
+				EConcept concept = eConceptUtil_.createConcept(ConverterUUID.nameUUIDFromBytes((uuidRoot_ + entry.getKey()).getBytes()));
+				eConceptUtil_.addDescriptions(concept, Arrays.asList(new ValuePropertyPair(entry.getValue(), descriptions.getProperty("VA Category"))));
+				
 				// Treat this as an ID here, rather than a refset.  Should really have VA_CLASS as an ID here, instead of refset, but punt for now.
 				eConceptUtil_.addAdditionalIds(concept, entry.getKey(), refsets.getProperty("VA_CLASS").getUUID(), false);
 
@@ -354,12 +357,17 @@ public class NDFImportMojo extends AbstractMojo
 
 				for (Entry<String, HashSet<String>> genericItem : classItem.getValue().entrySet())
 				{
-					EConcept genericConcept = eConceptUtil_.createConcept(classItem.getKey() + ":" + genericItem.getKey(), genericItem.getKey());
+					EConcept genericConcept = eConceptUtil_.createConcept(
+							ConverterUUID.nameUUIDFromBytes((uuidRoot_ + classItem.getKey() + ":" + genericItem.getKey()).getBytes()) );
+					eConceptUtil_.addDescriptions(genericConcept, Arrays.asList(new ValuePropertyPair(genericItem.getKey(), descriptions.getProperty("GENERIC"))));
+					
 					eConceptUtil_.addRelationship(genericConcept, classUUID);
 					genericConcept.writeExternal(dos);
 					for (String product : genericItem.getValue())
 					{
-						EConcept productConcept = eConceptUtil_.createConcept(classItem.getKey() + ":" + genericItem.getKey() + ":" + product, product);
+						EConcept productConcept = eConceptUtil_.createConcept(
+								ConverterUUID.nameUUIDFromBytes((uuidRoot_ + classItem.getKey() + ":" + genericItem.getKey() + ":" + product).getBytes()));
+						eConceptUtil_.addDescriptions(productConcept, Arrays.asList(new ValuePropertyPair(product, descriptions.getProperty("VA_PRODUCT"))));
 						eConceptUtil_.addRelationship(productConcept, genericConcept.getPrimordialUuid());
 						productConcept.writeExternal(dos);
 						class_generic_productToUUID.put(classItem.getKey() + ":" + genericItem.getKey() + ":" + product, productConcept.getPrimordialUuid());
@@ -426,11 +434,8 @@ public class NDFImportMojo extends AbstractMojo
 					//Can use the ConverterUUID class here, since we are just feeding in the ndfNDC, it won't be as overwhelming.
 					conceptID = ConverterUUID.nameUUIDFromBytes((uuidRoot_ + ndfNdc).getBytes());
 				}
-				
 
-				String fsn = asString(row.get("VA_PRODUCT"));
-
-				EConcept concept = eConceptUtil_.createConcept(conceptID, fsn);
+				EConcept concept = eConceptUtil_.createConcept(conceptID);
 				concept.setAnnotationIndexStyleRefex(true);
 				String className = asString(row.get("VA_CLASS"));
 				String generic = asString(row.get("GENERIC"));
@@ -445,6 +450,7 @@ public class NDFImportMojo extends AbstractMojo
 					eConceptUtil_.addRelationship(concept, parent);
 				}
 
+				ArrayList<ValuePropertyPair> descriptionsToLoad = new ArrayList<>();
 				boolean retired = false;
 				for (String type : row.keySet())
 				{
@@ -469,7 +475,8 @@ public class NDFImportMojo extends AbstractMojo
 					}
 					else if (p.getPropertyType() instanceof PT_Descriptions)
 					{
-						eConceptUtil_.addDescription(concept, value, p.getUUID(), false);
+						//batched in later
+						descriptionsToLoad.add(new ValuePropertyPair(value, p));
 					}
 					else if (p.getPropertyType() instanceof PT_IDs)
 					{
@@ -507,6 +514,8 @@ public class NDFImportMojo extends AbstractMojo
 				}
 				ConsoleUtil.showProgress();
 
+				eConceptUtil_.addDescriptions(concept, descriptionsToLoad);
+				
 				concept.writeExternal(dos);
 				eConceptUtil_.addRefsetMember(ndfAllConceptRefset, concept.getPrimordialUuid(), !retired, null);
 			}
