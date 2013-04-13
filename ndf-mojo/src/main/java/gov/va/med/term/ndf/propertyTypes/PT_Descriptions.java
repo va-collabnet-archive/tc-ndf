@@ -5,9 +5,9 @@ import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.BPT_Descripti
 public class PT_Descriptions extends BPT_Descriptions
 {
 
-	public PT_Descriptions(String uuidRoot)
+	public PT_Descriptions()
 	{
-		super(uuidRoot, "NDF");
+		super("NDF");
 		addProperty("TRADE", "Trade Name", "Trade name of product", false, SYNONYM + 2);
 		addProperty("NF_NAME", "National Formulary name", "National Formulary name, Combine generic an dosage form", false, SYNONYM + 1);
 		addProperty("VA_PRODUCT", "VA Product Name", null, false, FSN);

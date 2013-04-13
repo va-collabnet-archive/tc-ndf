@@ -52,7 +52,7 @@ import com.healthmarketscience.jackcess.Table;
  */
 public class NDFImportMojo extends AbstractMojo
 {
-	private String uuidRoot_ = "gov.va.med.term.ndf:";
+	private final String ndfNamespaceBaseSeed = "gov.va.med.term.ndf";
 
 	private EConceptUtility eConceptUtil_;
 	private DataOutputStream dos;
@@ -100,6 +100,12 @@ public class NDFImportMojo extends AbstractMojo
 				outputDirectory.mkdirs();
 			}
 			
+			File touch = new File(outputDirectory, "ndfEConcepts.jbin");
+			dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(touch)));
+
+			ConverterUUID.enableDupeUUIDException_ = true;
+			eConceptUtil_ = new EConceptUtility(ndfNamespaceBaseSeed, "NDF Path", dos);
+			
 			int version = -1;
 			if (releaseVersion.startsWith("2012-08"))
 			{
@@ -117,17 +123,11 @@ public class NDFImportMojo extends AbstractMojo
 			
 			PropertyType.setSourceVersion(version);
 			
-			PropertyType attributes = new PT_Attributes(uuidRoot_);
-			PropertyType contentVersion = new PT_ContentVersion(uuidRoot_);
-			PropertyType descriptions = new PT_Descriptions(uuidRoot_);
-			PropertyType ids = new PT_IDs(uuidRoot_);
+			PropertyType attributes = new PT_Attributes();
+			PropertyType contentVersion = new PT_ContentVersion();
+			PropertyType descriptions = new PT_Descriptions();
+			PropertyType ids = new PT_IDs();
 			PropertyType refsets;
-
-			File touch = new File(outputDirectory, "ndfEConcepts.jbin");
-			dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(touch)));
-
-			ConverterUUID.enableDupeUUIDException = true;
-			eConceptUtil_ = new EConceptUtility(uuidRoot_, "NDF Path", dos);
 
 			EConcept metaDataRoot = eConceptUtil_.createConcept("NDF Metadata", ArchitectonicAuxiliary.Concept.ARCHITECTONIC_ROOT_CONCEPT.getPrimoridalUid());
 			metaDataRoot.writeExternal(dos);
@@ -141,7 +141,7 @@ public class NDFImportMojo extends AbstractMojo
 			// this must be stored later....
 			EConcept ndfAllConceptRefset = eConceptUtil_.createConcept("All NDF Concepts", ndfRefsets.getPrimordialUuid());
 
-			refsets = new PT_RefSets(uuidRoot_, ndfRefsets.getPrimordialUuid());
+			refsets = new PT_RefSets(ndfRefsets.getPrimordialUuid());
 
 			List<PropertyType> allPropertyTypes = new ArrayList<PropertyType>(Arrays.asList(attributes, contentVersion, descriptions, refsets, ids));
 			eConceptUtil_.loadMetaDataItems(allPropertyTypes, metaDataRoot.getPrimordialUuid(), dos);
@@ -283,7 +283,7 @@ public class NDFImportMojo extends AbstractMojo
 				lastLeadingChars = leadingChars;
 				leadingChars = entry.getKey().substring(0, 2);
 
-				EConcept concept = eConceptUtil_.createConcept(ConverterUUID.nameUUIDFromBytes((uuidRoot_ + entry.getKey()).getBytes()));
+				EConcept concept = eConceptUtil_.createConcept(ConverterUUID.createNamespaceUUIDFromString(entry.getKey()));
 				eConceptUtil_.addDescriptions(concept, Arrays.asList(new ValuePropertyPair(entry.getValue(), descriptions.getProperty("VA Category"))));
 				
 				// Treat this as an ID here, rather than a refset.  Should really have VA_CLASS as an ID here, instead of refset, but punt for now.
@@ -358,7 +358,7 @@ public class NDFImportMojo extends AbstractMojo
 				for (Entry<String, HashSet<String>> genericItem : classItem.getValue().entrySet())
 				{
 					EConcept genericConcept = eConceptUtil_.createConcept(
-							ConverterUUID.nameUUIDFromBytes((uuidRoot_ + classItem.getKey() + ":" + genericItem.getKey()).getBytes()) );
+							ConverterUUID.createNamespaceUUIDFromString(classItem.getKey() + ":" + genericItem.getKey()));
 					eConceptUtil_.addDescriptions(genericConcept, Arrays.asList(new ValuePropertyPair(genericItem.getKey(), descriptions.getProperty("GENERIC"))));
 					
 					eConceptUtil_.addRelationship(genericConcept, classUUID);
@@ -366,7 +366,7 @@ public class NDFImportMojo extends AbstractMojo
 					for (String product : genericItem.getValue())
 					{
 						EConcept productConcept = eConceptUtil_.createConcept(
-								ConverterUUID.nameUUIDFromBytes((uuidRoot_ + classItem.getKey() + ":" + genericItem.getKey() + ":" + product).getBytes()));
+								ConverterUUID.createNamespaceUUIDFromString(classItem.getKey() + ":" + genericItem.getKey() + ":" + product));
 						eConceptUtil_.addDescriptions(productConcept, Arrays.asList(new ValuePropertyPair(product, descriptions.getProperty("VA_PRODUCT"))));
 						eConceptUtil_.addRelationship(productConcept, genericConcept.getPrimordialUuid());
 						productConcept.writeExternal(dos);
@@ -394,10 +394,9 @@ public class NDFImportMojo extends AbstractMojo
 				// 000378269510 AMITRIPTYLINE HCL 150MG TAB has two rows in the DB that are EXACT duplicates.
 
 				String key = keyForRow(row);
-				// Purposefully not using the ConverterUUID class - don't want to stick this entire value into the map.
-				// I'd end up rewriting the entire DB, since there isn't any unique column in this DB.
-
-				UUID conceptID = UUID.nameUUIDFromBytes((uuidRoot_ + key).getBytes());
+				
+				UUID conceptID = ConverterUUID.createNamespaceUUIDFromString(key);
+				ConverterUUID.removeMapping(conceptID);  //Don't keep this mapping - I'd end up storing the entire DB because the string is so large.
 				if (generatedUUIDs.contains(conceptID))
 				{
 					duplicates.add(key);
@@ -432,7 +431,7 @@ public class NDFImportMojo extends AbstractMojo
 						uniqueNdfNdcVerify.add(ndfNdc);
 					}
 					//Can use the ConverterUUID class here, since we are just feeding in the ndfNDC, it won't be as overwhelming.
-					conceptID = ConverterUUID.nameUUIDFromBytes((uuidRoot_ + ndfNdc).getBytes());
+					conceptID = ConverterUUID.createNamespaceUUIDFromString(ndfNdc);
 				}
 
 				EConcept concept = eConceptUtil_.createConcept(conceptID);

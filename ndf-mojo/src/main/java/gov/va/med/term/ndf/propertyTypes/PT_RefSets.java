@@ -9,9 +9,9 @@ import java.util.UUID;
  */
 public class PT_RefSets extends BPT_Refsets
 {
-	public PT_RefSets(String uuidRoot, UUID refsetIdentityParent)
+	public PT_RefSets(UUID refsetIdentityParent)
 	{
-		super(uuidRoot, refsetIdentityParent);
+		super(refsetIdentityParent);
 		addProperty("VA_CLASS", "VA Class", null);
 	}
 }

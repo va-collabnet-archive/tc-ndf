@@ -8,9 +8,9 @@ import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.BPT_Attribute
  */
 public class PT_Attributes extends BPT_Attributes
 {
-	public PT_Attributes(String uuidRoot)
+	public PT_Attributes()
 	{
-		super(uuidRoot);
+		super();
 		addProperty("NDC_1", "NDC 1", "Characters 2-6 of NDF NDC");
 		addProperty("NDC_2", "NDC 2", "Characters 7-10 of NDF NDC");
 		addProperty("NDC_3", "NDC 3", "Characters 11-12 of NDF NDC");
