@@ -127,24 +127,16 @@ public class NDFImportMojo extends AbstractMojo
 			PropertyType contentVersion = new PT_ContentVersion();
 			PropertyType descriptions = new PT_Descriptions();
 			PropertyType ids = new PT_IDs();
-			PropertyType refsets;
+			PT_RefSets refsets = new PT_RefSets();
 
 			EConcept metaDataRoot = eConceptUtil_.createConcept("NDF Metadata", ArchitectonicAuxiliary.Concept.ARCHITECTONIC_ROOT_CONCEPT.getPrimoridalUid());
 			metaDataRoot.writeExternal(dos);
 
-			// This is chosen to line up with other va refsets
-			EConcept vaRefsets = eConceptUtil_.createVARefsetRootConcept();
-			vaRefsets.writeExternal(dos);
-
-			EConcept ndfRefsets = eConceptUtil_.createAndStoreMetaDataConcept("NDF Refsets", vaRefsets.getPrimordialUuid(), dos);
-
-			// this must be stored later....
-			EConcept ndfAllConceptRefset = eConceptUtil_.createConcept("All NDF Concepts", ndfRefsets.getPrimordialUuid());
-
-			refsets = new PT_RefSets(ndfRefsets.getPrimordialUuid());
-
 			List<PropertyType> allPropertyTypes = new ArrayList<PropertyType>(Arrays.asList(attributes, contentVersion, descriptions, refsets, ids));
 			eConceptUtil_.loadMetaDataItems(allPropertyTypes, metaDataRoot.getPrimordialUuid(), dos);
+			
+			// this must be stored later....
+			EConcept ndfAllConceptRefset = refsets.getConcept("All NDF Concepts");
 
 			ConsoleUtil.println("Metadata Summary");
 			for (String s : eConceptUtil_.getLoadStats().getSummary())
@@ -516,7 +508,7 @@ public class NDFImportMojo extends AbstractMojo
 				eConceptUtil_.addDescriptions(concept, descriptionsToLoad);
 				
 				concept.writeExternal(dos);
-				eConceptUtil_.addRefsetMember(ndfAllConceptRefset, concept.getPrimordialUuid(), !retired, null);
+				eConceptUtil_.addRefsetMember(ndfAllConceptRefset, concept.getPrimordialUuid(), null, !retired, null);
 			}
 
 			if (duplicates.size() > 0)
@@ -534,7 +526,7 @@ public class NDFImportMojo extends AbstractMojo
 				fw.close();
 			}
 
-			ndfAllConceptRefset.writeExternal(dos);
+			eConceptUtil_.storeRefsetConcepts(refsets, dos);
 
 			dos.flush();
 			dos.close();

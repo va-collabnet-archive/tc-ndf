@@ -1,7 +1,6 @@
 package gov.va.med.term.ndf.propertyTypes;
 
 import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.BPT_Refsets;
-import java.util.UUID;
 
 /**
  * Columns from the NDF load which are loaded as attributes / subsets
@@ -9,9 +8,10 @@ import java.util.UUID;
  */
 public class PT_RefSets extends BPT_Refsets
 {
-	public PT_RefSets(UUID refsetIdentityParent)
+	public PT_RefSets()
 	{
-		super(refsetIdentityParent);
+		super("NDF");
 		addProperty("VA_CLASS", "VA Class", null);
+		addProperty("All NDF Concepts");
 	}
 }
