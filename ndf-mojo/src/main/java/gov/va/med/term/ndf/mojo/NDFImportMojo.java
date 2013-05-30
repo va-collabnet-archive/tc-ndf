@@ -103,7 +103,6 @@ public class NDFImportMojo extends AbstractMojo
 			File touch = new File(outputDirectory, "ndfEConcepts.jbin");
 			dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(touch)));
 
-			ConverterUUID.enableDupeUUIDException_ = true;
 			eConceptUtil_ = new EConceptUtility(ndfNamespaceBaseSeed, "NDF Path", dos);
 			
 			int version = -1;
