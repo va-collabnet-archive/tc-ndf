@@ -10,6 +10,7 @@ import gov.va.med.term.ndf.util.AlphanumComparator;
 import gov.va.oia.terminology.converters.sharedUtils.ConsoleUtil;
 import gov.va.oia.terminology.converters.sharedUtils.EConceptUtility;
 import gov.va.oia.terminology.converters.sharedUtils.Unzip;
+import gov.va.oia.terminology.converters.sharedUtils.EConceptUtility.DescriptionType;
 import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.BPT_ContentVersion.BaseContentVersion;
 import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.Property;
 import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.PropertyType;
@@ -254,6 +255,8 @@ public class NDFImportMojo extends AbstractMojo
 			}
 
 			EConcept ndfRoot = eConceptUtil_.createConcept("NDF");
+			eConceptUtil_.addDescription(ndfRoot, "NDF", DescriptionType.SYNONYM, true, null, null, false);
+			eConceptUtil_.addDescription(ndfRoot, "National Drug File", DescriptionType.SYNONYM, false, null, null, false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, releaseVersion, BaseContentVersion.RELEASE.getProperty().getUUID(), false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, loaderVersion, BaseContentVersion.LOADER_VERSION.getProperty().getUUID(), false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, tableName, ContentVersion.TABLE_NAME.getProperty().getUUID(), false);
