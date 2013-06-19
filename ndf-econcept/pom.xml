@@ -5,14 +5,14 @@
 	<parent>
 		<groupId>gov.va.oia.terminology.converters</groupId>
 		<artifactId>ndf</artifactId>
-		<version>1.2</version>
+		<version>1.3-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>ndf-econcept</artifactId>
 	<packaging>pom</packaging>
 	<name>ndf-econcept</name>
 	<!-- this should be set to ${sourceData.version}-loader-${project.parent.version} but that doesn't appease the maven gods that know best.... -->
-	<version>2013-02-loader-1.2</version>
+	<version>2013-02-loader-1.3-SNAPSHOT</version>
 
 	<properties>
 		<sourceData.version>2013-02</sourceData.version>
