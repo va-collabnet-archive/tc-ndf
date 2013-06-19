@@ -257,6 +257,7 @@ public class NDFImportMojo extends AbstractMojo
 			EConcept ndfRoot = eConceptUtil_.createConcept("NDF");
 			eConceptUtil_.addDescription(ndfRoot, "NDF", DescriptionType.SYNONYM, true, null, null, false);
 			eConceptUtil_.addDescription(ndfRoot, "National Drug File", DescriptionType.SYNONYM, false, null, null, false);
+			ConsoleUtil.println("Root concept FSN is 'NDF' and the UUID is " + ndfRoot.getPrimordialUuid());
 			eConceptUtil_.addStringAnnotation(ndfRoot, releaseVersion, BaseContentVersion.RELEASE.getProperty().getUUID(), false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, loaderVersion, BaseContentVersion.LOADER_VERSION.getProperty().getUUID(), false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, tableName, ContentVersion.TABLE_NAME.getProperty().getUUID(), false);
