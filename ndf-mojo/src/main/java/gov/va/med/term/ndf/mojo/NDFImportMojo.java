@@ -9,9 +9,8 @@ import gov.va.med.term.ndf.propertyTypes.PT_RefSets;
 import gov.va.med.term.ndf.util.AlphanumComparator;
 import gov.va.oia.terminology.converters.sharedUtils.ConsoleUtil;
 import gov.va.oia.terminology.converters.sharedUtils.EConceptUtility;
-import gov.va.oia.terminology.converters.sharedUtils.Unzip;
 import gov.va.oia.terminology.converters.sharedUtils.EConceptUtility.DescriptionType;
-import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.BPT_ContentVersion.BaseContentVersion;
+import gov.va.oia.terminology.converters.sharedUtils.Unzip;
 import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.Property;
 import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.PropertyType;
 import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.ValuePropertyPair;
@@ -124,7 +123,7 @@ public class NDFImportMojo extends AbstractMojo
 			PropertyType.setSourceVersion(version);
 			
 			PropertyType attributes = new PT_Attributes();
-			PropertyType contentVersion = new PT_ContentVersion();
+			PT_ContentVersion contentVersion = new PT_ContentVersion();
 			PropertyType descriptions = new PT_Descriptions();
 			PropertyType ids = new PT_IDs();
 			PT_RefSets refsets = new PT_RefSets();
@@ -258,8 +257,8 @@ public class NDFImportMojo extends AbstractMojo
 			eConceptUtil_.addDescription(ndfRoot, "NDF", DescriptionType.SYNONYM, true, null, null, false);
 			eConceptUtil_.addDescription(ndfRoot, "National Drug File", DescriptionType.SYNONYM, false, null, null, false);
 			ConsoleUtil.println("Root concept FSN is 'NDF' and the UUID is " + ndfRoot.getPrimordialUuid());
-			eConceptUtil_.addStringAnnotation(ndfRoot, releaseVersion, BaseContentVersion.RELEASE.getProperty().getUUID(), false);
-			eConceptUtil_.addStringAnnotation(ndfRoot, loaderVersion, BaseContentVersion.LOADER_VERSION.getProperty().getUUID(), false);
+			eConceptUtil_.addStringAnnotation(ndfRoot, releaseVersion, contentVersion.RELEASE.getUUID(), false);
+			eConceptUtil_.addStringAnnotation(ndfRoot, loaderVersion, contentVersion.LOADER_VERSION.getUUID(), false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, tableName, ContentVersion.TABLE_NAME.getProperty().getUUID(), false);
 
 			ndfRoot.writeExternal(dos);
