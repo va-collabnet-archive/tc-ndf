@@ -491,8 +491,9 @@ public class NDFImportMojo extends AbstractMojo
 								ConsoleUtil.printErrorln("Oops - null class");
 								continue;
 							}
-							//TODO This still doesn't seem to do what I want.  May just remove it, and put VA_CLASS back over in attribute... not sure.
-							//waiting for Keith to answer a question.
+							//Note, the WB 'indexing' function for attributes like this only seems to work for string attributes, 
+							//doesn't work for UUID attributes.  Currently, you cannot list all the members of VA_CLASS, which is kind of silly.
+							//Might have to make this back into a string attribute, or a member refset on the VA_CLASS concept, if anyone notices...
 							eConceptUtil_.addUuidAnnotation(concept.getConceptAttributes(), classUUID, refsets.getProperty("VA_CLASS").getUUID());
 						}
 						else
