@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
@@ -41,6 +40,7 @@ import org.dwfa.cement.ArchitectonicAuxiliary;
 import org.ihtsdo.etypes.EConcept;
 import com.healthmarketscience.jackcess.Column;
 import com.healthmarketscience.jackcess.Database;
+import com.healthmarketscience.jackcess.DatabaseBuilder;
 import com.healthmarketscience.jackcess.Table;
 
 /**
@@ -114,6 +114,10 @@ public class NDFImportMojo extends AbstractMojo
 			{
 				version = 2;
 			}
+			else if (releaseVersion.startsWith("2013-08-28"))
+			{
+				version = 2;
+			}
 			else
 			{
 				ConsoleUtil.printErrorln("Untested source version.  Using newest known properties map");
@@ -158,11 +162,11 @@ public class NDFImportMojo extends AbstractMojo
 			
 			for (File f : inputFile.listFiles())
 			{
-				if (f.getName().toLowerCase().endsWith(".mdb"))
+				if (f.getName().toLowerCase().endsWith(".mdb") || f.getName().toLowerCase().endsWith(".accdb"))
 				{
 					if (dbPath != null)
 					{
-						throw new RuntimeException("More than one .mdb file found in input Path.  Can't handle.");
+						throw new RuntimeException("More than one database (.mdb or .accdb) file found in input Path.  Can't handle.");
 					}
 					else
 					{
@@ -221,7 +225,7 @@ public class NDFImportMojo extends AbstractMojo
 
 			ConsoleUtil.println("Read " + classCategoryMap.size() + " rows from the VA Drug Class file");
 
-			Database db = Database.open(dbPath, true);
+			Database db = DatabaseBuilder.open(dbPath);
 
 			if (db.getTableNames().size() != 1)
 			{
@@ -305,10 +309,10 @@ public class NDFImportMojo extends AbstractMojo
 			// Iterate the DB, find all unique VA_CLASS / GENERIC / VA_Product triples
 			HashMap<String, HashMap<String, HashSet<String>>> classGenericProductData = new HashMap<>();
 			{
-				Iterator<Map<String, Object>> iter = table.iterator();
+				Iterator<com.healthmarketscience.jackcess.Row> iter = table.iterator();
 				while (iter.hasNext())
 				{
-					Map<String, Object> item = iter.next();
+					com.healthmarketscience.jackcess.Row item = iter.next();
 					String vaClass = item.get("VA_CLASS").toString();
 					String generic = item.get("GENERIC").toString();
 					String vaProduct = item.get("VA_PRODUCT").toString();
@@ -379,10 +383,10 @@ public class NDFImportMojo extends AbstractMojo
 			HashSet<String> uniqueFeederVerify = new HashSet<>();
 			HashSet<String> uniqueNdfNdcVerify = new HashSet<>();
 
-			Iterator<Map<String, Object>> iter = table.iterator();
+			Iterator<com.healthmarketscience.jackcess.Row> iter = table.iterator();
 			while (iter.hasNext())
 			{
-				Map<String, Object> row = iter.next();
+				com.healthmarketscience.jackcess.Row row = iter.next();
 
 				// So, it turns out, there is _nothing_ in the NDF database that is unique in version 1
 				// 000378269510 AMITRIPTYLINE HCL 150MG TAB has two rows in the DB that are EXACT duplicates.
@@ -566,7 +570,7 @@ public class NDFImportMojo extends AbstractMojo
 		return sb.substring(0, sb.length() - 1);
 	}
 
-	private String keyForRow(Map<String, Object> row)
+	private String keyForRow(com.healthmarketscience.jackcess.Row row)
 	{
 		StringBuilder sb = new StringBuilder();
 		for (Object o : row.values())
