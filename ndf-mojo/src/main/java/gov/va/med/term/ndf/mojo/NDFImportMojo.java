@@ -114,7 +114,7 @@ public class NDFImportMojo extends AbstractMojo
 			{
 				version = 2;
 			}
-			else if (releaseVersion.startsWith("2013-08-28"))
+			else if (releaseVersion.startsWith("2013-08-28") || releaseVersion.startsWith("2013-12-20"))
 			{
 				version = 2;
 			}
