@@ -5,17 +5,17 @@
 	<parent>
 		<groupId>gov.va.oia.terminology.converters</groupId>
 		<artifactId>ndf</artifactId>
-		<version>1.6.1</version>
+		<version>1.7</version>
 	</parent>
 
 	<artifactId>ndf-econcept</artifactId>
 	<packaging>pom</packaging>
 	<name>ndf-econcept</name>
 	<!-- this should be set to ${sourceData.version}-loader-${project.parent.version} but that doesn't appease the maven gods that know best.... -->
-	<version>2013-12-20-loader-1.6.1</version>
+	<version>2014-08-loader-1.7</version>
 
 	<properties>
-		<sourceData.version>2013-12-20</sourceData.version>
+		<sourceData.version>2014-08</sourceData.version>
 	</properties>
 
 	<build>

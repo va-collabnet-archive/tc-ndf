@@ -21,12 +21,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
@@ -38,10 +40,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.dwfa.cement.ArchitectonicAuxiliary;
 import org.ihtsdo.etypes.EConcept;
-import com.healthmarketscience.jackcess.Column;
-import com.healthmarketscience.jackcess.Database;
-import com.healthmarketscience.jackcess.DatabaseBuilder;
-import com.healthmarketscience.jackcess.Table;
 
 /**
  * Goal which converts NDF data into the workbench jbin format
@@ -114,7 +112,7 @@ public class NDFImportMojo extends AbstractMojo
 			{
 				version = 2;
 			}
-			else if (releaseVersion.startsWith("2013-08-28") || releaseVersion.startsWith("2013-12-20"))
+			else if (releaseVersion.startsWith("2013-08-28") || releaseVersion.startsWith("2013-12-20") || releaseVersion.startsWith("2014-04-24"))
 			{
 				version = 2;
 			}
@@ -173,6 +171,18 @@ public class NDFImportMojo extends AbstractMojo
 						dbPath = f;
 					}
 				}
+				//They have now changed the 'db' release format to xlsx in the 2014-08 release...
+				if (f.getName().toLowerCase().endsWith(".xlsx"))
+				{
+					if (dbPath != null)
+					{
+						throw new RuntimeException("More than one database (.mdb or .accdb or .xlsx) file found in input Path.  Can't handle.");
+					}
+					else
+					{
+						dbPath = f;
+					}
+				}
 				else if (f.getName().toLowerCase().endsWith(".xls"))
 				{
 					if (classFile != null)
@@ -193,7 +203,7 @@ public class NDFImportMojo extends AbstractMojo
 
 			if (dbPath == null)
 			{
-				throw new RuntimeException("Could not find an Access Database (*.mdb) in the input folder: " + inputFile.getAbsolutePath());
+				throw new RuntimeException("Could not find the data file (*.mdb, *.accdb, or *.xlsx) in the input folder: " + inputFile.getAbsolutePath());
 			}
 
 			TreeMap<String, String> classCategoryMap = new TreeMap<String, String>(new AlphanumComparator(true));
@@ -225,22 +235,12 @@ public class NDFImportMojo extends AbstractMojo
 
 			ConsoleUtil.println("Read " + classCategoryMap.size() + " rows from the VA Drug Class file");
 
-			Database db = DatabaseBuilder.open(dbPath);
-
-			if (db.getTableNames().size() != 1)
-			{
-				throw new RuntimeException("Only expected to find one table within the Database.  Can't handle");
-			}
-
-			String tableName = db.getTableNames().iterator().next();
-
-			Table table = db.getTable(tableName);
+			DataReader db = (dbPath.getName().toLowerCase().endsWith("xlsx") ? new ExcelDataReader(dbPath) : new AccessDataReader(dbPath));
 
 			HashMap<String, Property> propertyMap = new HashMap<String, Property>();
 
-			for (Column c : table.getColumns())
+			for (String name : db.getColumnNames())
 			{
-				String name = c.getName();
 				Property p = null;
 				for (PropertyType pt : allPropertyTypes)
 				{
@@ -263,7 +263,7 @@ public class NDFImportMojo extends AbstractMojo
 			ConsoleUtil.println("Root concept FSN is 'NDF' and the UUID is " + ndfRoot.getPrimordialUuid());
 			eConceptUtil_.addStringAnnotation(ndfRoot, releaseVersion, contentVersion.RELEASE.getUUID(), false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, loaderVersion, contentVersion.LOADER_VERSION.getUUID(), false);
-			eConceptUtil_.addStringAnnotation(ndfRoot, tableName, ContentVersion.TABLE_NAME.getProperty().getUUID(), false);
+			eConceptUtil_.addStringAnnotation(ndfRoot, db.getTableName(), ContentVersion.TABLE_NAME.getProperty().getUUID(), false);
 
 			ndfRoot.writeExternal(dos);
 
@@ -309,10 +309,10 @@ public class NDFImportMojo extends AbstractMojo
 			// Iterate the DB, find all unique VA_CLASS / GENERIC / VA_Product triples
 			HashMap<String, HashMap<String, HashSet<String>>> classGenericProductData = new HashMap<>();
 			{
-				Iterator<com.healthmarketscience.jackcess.Row> iter = table.iterator();
+				Iterator<Map<String, Object>> iter = db.getRows();
 				while (iter.hasNext())
 				{
-					com.healthmarketscience.jackcess.Row item = iter.next();
+					Map<String, Object> item = iter.next();
 					String vaClass = item.get("VA_CLASS").toString();
 					String generic = item.get("GENERIC").toString();
 					String vaProduct = item.get("VA_PRODUCT").toString();
@@ -383,10 +383,10 @@ public class NDFImportMojo extends AbstractMojo
 			HashSet<String> uniqueFeederVerify = new HashSet<>();
 			HashSet<String> uniqueNdfNdcVerify = new HashSet<>();
 
-			Iterator<com.healthmarketscience.jackcess.Row> iter = table.iterator();
+			Iterator<Map<String, Object>> iter = db.getRows();
 			while (iter.hasNext())
 			{
-				com.healthmarketscience.jackcess.Row row = iter.next();
+				Map<String, Object> row = iter.next();
 
 				// So, it turns out, there is _nothing_ in the NDF database that is unique in version 1
 				// 000378269510 AMITRIPTYLINE HCL 150MG TAB has two rows in the DB that are EXACT duplicates.
@@ -521,7 +521,7 @@ public class NDFImportMojo extends AbstractMojo
 			if (duplicates.size() > 0)
 			{
 				FileWriter fw = new FileWriter(new File(outputDirectory, "duplicates.txt"));
-				fw.write(duplicatesHeader(table.iterator().next().keySet()));
+				fw.write(duplicatesHeader(db.getRows().next().keySet()));
 
 				ConsoleUtil.printErrorln("The database contains " + duplicates.size()
 						+ " duplicate rows.  They were not loaded into the WB DB.  Logged to 'duplicates.txt'");
@@ -556,7 +556,7 @@ public class NDFImportMojo extends AbstractMojo
 
 	private String asString(Object o)
 	{
-		return (o == null ? null : o.toString());
+		return (o == null ? null : (o instanceof Double ? new BigDecimal(((Double)o)).toPlainString() : o.toString()));
 	}
 
 	private String duplicatesHeader(Set<String> names)
@@ -570,7 +570,7 @@ public class NDFImportMojo extends AbstractMojo
 		return sb.substring(0, sb.length() - 1);
 	}
 
-	private String keyForRow(com.healthmarketscience.jackcess.Row row)
+	private String keyForRow(Map<String, Object> row)
 	{
 		StringBuilder sb = new StringBuilder();
 		for (Object o : row.values())
