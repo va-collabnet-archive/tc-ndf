@@ -1,6 +1,6 @@
 package gov.va.med.term.ndf.mojo;
 
-import gov.va.med.term.ndf.propertyTypes.PT_Attributes;
+import gov.va.med.term.ndf.propertyTypes.PT_Annotations;
 import gov.va.med.term.ndf.propertyTypes.PT_ContentVersion;
 import gov.va.med.term.ndf.propertyTypes.PT_ContentVersion.ContentVersion;
 import gov.va.med.term.ndf.propertyTypes.PT_Descriptions;
@@ -15,6 +15,7 @@ import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.Property;
 import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.PropertyType;
 import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.ValuePropertyPair;
 import gov.va.oia.terminology.converters.sharedUtils.stats.ConverterUUID;
+
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -22,6 +23,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -33,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -89,6 +92,7 @@ public class NDFImportMojo extends AbstractMojo
 	 */
 	private String releaseVersion;
 
+	@Override
 	public void execute() throws MojoExecutionException
 	{
 		try
@@ -100,31 +104,39 @@ public class NDFImportMojo extends AbstractMojo
 			
 			File touch = new File(outputDirectory, "ndfEConcepts.jbin");
 			dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(touch)));
-
-			eConceptUtil_ = new EConceptUtility(ndfNamespaceBaseSeed, "NDF Path", dos);
 			
+			SimpleDateFormat parseOne = new SimpleDateFormat("yyyy-MM");
+			SimpleDateFormat parseTwo = new SimpleDateFormat("yyyy-MM-dd");
+			long time;
+
 			int version = -1;
 			if (releaseVersion.startsWith("2012-08"))
 			{
-				version = 1;  
+				version = 1;
+				time = parseOne.parse(releaseVersion.substring(0, 8)).getTime();
 			}
 			else if (releaseVersion.startsWith("2013-02"))
 			{
 				version = 2;
+				time = parseOne.parse(releaseVersion.substring(0, 8)).getTime();
 			}
 			else if (releaseVersion.startsWith("2013-08-28") || releaseVersion.startsWith("2013-12-20") || releaseVersion.startsWith("2014-04-24"))
 			{
 				version = 2;
+				time = parseTwo.parse(releaseVersion.substring(0, 11)).getTime();
 			}
 			else
 			{
 				ConsoleUtil.printErrorln("Untested source version.  Using newest known properties map");
+				time = parseOne.parse(releaseVersion.substring(0, 8)).getTime();
 				version = 2;
 			}
 			
+			eConceptUtil_ = new EConceptUtility(ndfNamespaceBaseSeed, "NDF Path", dos, time);
+			
 			PropertyType.setSourceVersion(version);
 			
-			PropertyType attributes = new PT_Attributes();
+			PropertyType attributes = new PT_Annotations();
 			PT_ContentVersion contentVersion = new PT_ContentVersion();
 			PropertyType descriptions = new PT_Descriptions();
 			PropertyType ids = new PT_IDs();
@@ -461,7 +473,7 @@ public class NDFImportMojo extends AbstractMojo
 					{
 						ConsoleUtil.printErrorln("Couldn't find a property for " + type);
 					}
-					else if (p.getPropertyType() instanceof PT_Attributes)
+					else if (p.getPropertyType() instanceof PT_Annotations)
 					{
 						if (type.equals("I_DATE_VAP"))
 						{
@@ -545,7 +557,7 @@ public class NDFImportMojo extends AbstractMojo
 
 			// this could be removed from final release. Just added to help debug editor problems.
 			ConsoleUtil.println("Dumping UUID Debug File");
-			ConverterUUID.dump(new File(outputDirectory, "ndfUuidDebugMap.txt"));
+			ConverterUUID.dump(outputDirectory, "ndfUuid");
 			ConsoleUtil.writeOutputToFile(new File(outputDirectory, "ConsoleOutput.txt").toPath());
 		}
 		catch (Exception ex)
