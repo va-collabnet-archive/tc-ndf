@@ -8,6 +8,7 @@ import gov.va.med.term.ndf.propertyTypes.PT_IDs;
 import gov.va.med.term.ndf.propertyTypes.PT_RefSets;
 import gov.va.med.term.ndf.util.AlphanumComparator;
 import gov.va.oia.terminology.converters.sharedUtils.ConsoleUtil;
+import gov.va.oia.terminology.converters.sharedUtils.ConverterBaseMojo;
 import gov.va.oia.terminology.converters.sharedUtils.EConceptUtility;
 import gov.va.oia.terminology.converters.sharedUtils.EConceptUtility.DescriptionType;
 import gov.va.oia.terminology.converters.sharedUtils.Unzip;
@@ -36,8 +37,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -46,51 +48,14 @@ import org.ihtsdo.etypes.EConcept;
 
 /**
  * Goal which converts NDF data into the workbench jbin format
- * 
- * @goal convert-NDF-data
- * 
- * @phase process-sources
  */
-public class NDFImportMojo extends AbstractMojo
+@Mojo( name = "convert-NDF-data", defaultPhase = LifecyclePhase.PROCESS_SOURCES )
+public class NDFImportMojo extends ConverterBaseMojo
 {
 	private final String ndfNamespaceBaseSeed = "gov.va.med.term.ndf";
 
 	private EConceptUtility eConceptUtil_;
 	private DataOutputStream dos;
-
-	/**
-	 * Where to put the output file.
-	 * 
-	 * @parameter expression="${project.build.directory}"
-	 * @required
-	 */
-
-	private File outputDirectory;
-
-	/**
-	 * Location of source data files. Expected to be a directory.
-	 * 
-	 * @parameter
-	 * @required
-	 */
-	private File inputFile;
-
-	/**
-	 * Loader version number
-	 * Use parent because project.version pulls in the version of the data file, which I don't want.
-	 * 
-	 * @parameter expression="${project.parent.version}"
-	 * @required
-	 */
-	private String loaderVersion;
-
-	/**
-	 * Content version number
-	 * 
-	 * @parameter expression="${project.version}"
-	 * @required
-	 */
-	private String releaseVersion;
 
 	@Override
 	public void execute() throws MojoExecutionException
@@ -110,25 +75,25 @@ public class NDFImportMojo extends AbstractMojo
 			long time;
 
 			int version = -1;
-			if (releaseVersion.startsWith("2012-08"))
+			if (converterResultVersion.startsWith("2012-08"))
 			{
 				version = 1;
-				time = parseOne.parse(releaseVersion.substring(0, 8)).getTime();
+				time = parseOne.parse(converterResultVersion.substring(0, 8)).getTime();
 			}
-			else if (releaseVersion.startsWith("2013-02"))
+			else if (converterResultVersion.startsWith("2013-02"))
 			{
 				version = 2;
-				time = parseOne.parse(releaseVersion.substring(0, 8)).getTime();
+				time = parseOne.parse(converterResultVersion.substring(0, 8)).getTime();
 			}
-			else if (releaseVersion.startsWith("2013-08-28") || releaseVersion.startsWith("2013-12-20") || releaseVersion.startsWith("2014-04-24"))
+			else if (converterResultVersion.startsWith("2013-08-28") || converterResultVersion.startsWith("2013-12-20") || converterResultVersion.startsWith("2014-04-24"))
 			{
 				version = 2;
-				time = parseTwo.parse(releaseVersion.substring(0, 11)).getTime();
+				time = parseTwo.parse(converterResultVersion.substring(0, 11)).getTime();
 			}
 			else
 			{
 				ConsoleUtil.printErrorln("Untested source version.  Using newest known properties map");
-				time = parseOne.parse(releaseVersion.substring(0, 8)).getTime();
+				time = parseOne.parse(converterResultVersion.substring(0, 8)).getTime();
 				version = 2;
 			}
 			
@@ -162,15 +127,15 @@ public class NDFImportMojo extends AbstractMojo
 			File dbPath = null;
 			File classFile = null;
 			//First, unzip any zip files
-			for (File f : inputFile.listFiles())
+			for (File f : inputFileLocation.listFiles())
 			{
 				if (f.getName().toLowerCase().endsWith(".zip"))
 				{
-					Unzip.unzip(f, inputFile);
+					Unzip.unzip(f, inputFileLocation);
 				}
 			}
 			
-			for (File f : inputFile.listFiles())
+			for (File f : inputFileLocation.listFiles())
 			{
 				if (f.getName().toLowerCase().endsWith(".mdb") || f.getName().toLowerCase().endsWith(".accdb"))
 				{
@@ -215,7 +180,7 @@ public class NDFImportMojo extends AbstractMojo
 
 			if (dbPath == null)
 			{
-				throw new RuntimeException("Could not find the data file (*.mdb, *.accdb, or *.xlsx) in the input folder: " + inputFile.getAbsolutePath());
+				throw new RuntimeException("Could not find the data file (*.mdb, *.accdb, or *.xlsx) in the input folder: " + inputFileLocation.getAbsolutePath());
 			}
 
 			TreeMap<String, String> classCategoryMap = new TreeMap<String, String>(new AlphanumComparator(true));
@@ -273,7 +238,7 @@ public class NDFImportMojo extends AbstractMojo
 			eConceptUtil_.addDescription(ndfRoot, "NDF", DescriptionType.SYNONYM, true, null, null, false);
 			eConceptUtil_.addDescription(ndfRoot, "National Drug File", DescriptionType.SYNONYM, false, null, null, false);
 			ConsoleUtil.println("Root concept FSN is 'NDF' and the UUID is " + ndfRoot.getPrimordialUuid());
-			eConceptUtil_.addStringAnnotation(ndfRoot, releaseVersion, contentVersion.RELEASE.getUUID(), false);
+			eConceptUtil_.addStringAnnotation(ndfRoot, converterResultVersion, contentVersion.RELEASE.getUUID(), false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, loaderVersion, contentVersion.LOADER_VERSION.getUUID(), false);
 			eConceptUtil_.addStringAnnotation(ndfRoot, db.getTableName(), ContentVersion.TABLE_NAME.getProperty().getUUID(), false);
 
@@ -599,9 +564,9 @@ public class NDFImportMojo extends AbstractMojo
 	public static void main(String[] args) throws MojoExecutionException
 	{
 		NDFImportMojo i = new NDFImportMojo();
-		i.releaseVersion = "2013-02-blah blah";
+		i.converterResultVersion = "2013-02-blah blah";
 		i.outputDirectory = new File("../ndf-econcept/target");
-		i.inputFile = new File("../ndf-econcept/target/generated-resources/data/");
+		i.inputFileLocation = new File("../ndf-econcept/target/generated-resources/data/");
 		i.execute();
 	}
 }
