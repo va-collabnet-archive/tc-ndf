@@ -7,8 +7,14 @@ Steps to deploy new source content:
 		
 Note - new source content should not be checked into SVN.  When finished, simply empty the native-source folder.
 
-For NDF - the loader currently expects two files.
-	1) - A zip file which contains a single file - a MS Access Database (*.mdb)  (or a *.accdb file)
+http://www.pbm.va.gov/nationalformulary.asp
+
+For NDF - the loader currently expects two files.  If it finds a zip file, it unzips it as the first step.
+	1) The NationalDrugFile
+	  a) (older versions) - An MS Access Database (*.mdb)  (or a *.accdb file)
+	  b) (newer versions) - An MS Excel spreadsheet - (.xlsx)
 	2) - The VA Drug Class File - which is an MS Excel Spreadsheet (*.xls)
-	
-Both of these files are required.  If the distribution format changes, the loader will need to be updated as appropriate. 
+
+Note - it distinguishes the drug class file from the dta file by xlsx vs xls - at the moment.	
+Both of these files are required.  If the distribution format changes, the loader will need to be updated as appropriate.
+ 
