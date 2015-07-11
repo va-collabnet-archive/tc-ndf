@@ -24,7 +24,7 @@ public class ExcelDataReader implements DataReader
 		wb_ = new XSSFWorkbook(new FileInputStream(dbPath));
 		if (wb_.getNumberOfSheets() > 1)
 		{
-			throw new RuntimeException("Only expected to find one sheet");
+			System.err.println("Warning - Only expected to find one sheet - using the active sheet");
 		}
 		sheet_ = wb_.getSheetAt(wb_.getActiveSheetIndex());
 	}

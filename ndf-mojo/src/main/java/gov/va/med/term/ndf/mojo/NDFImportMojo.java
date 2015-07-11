@@ -1,22 +1,5 @@
 package gov.va.med.term.ndf.mojo;
 
-import gov.va.med.term.ndf.propertyTypes.PT_Annotations;
-import gov.va.med.term.ndf.propertyTypes.PT_ContentVersion;
-import gov.va.med.term.ndf.propertyTypes.PT_ContentVersion.ContentVersion;
-import gov.va.med.term.ndf.propertyTypes.PT_Descriptions;
-import gov.va.med.term.ndf.propertyTypes.PT_IDs;
-import gov.va.med.term.ndf.propertyTypes.PT_RefSets;
-import gov.va.med.term.ndf.util.AlphanumComparator;
-import gov.va.oia.terminology.converters.sharedUtils.ConsoleUtil;
-import gov.va.oia.terminology.converters.sharedUtils.ConverterBaseMojo;
-import gov.va.oia.terminology.converters.sharedUtils.EConceptUtility;
-import gov.va.oia.terminology.converters.sharedUtils.EConceptUtility.DescriptionType;
-import gov.va.oia.terminology.converters.sharedUtils.Unzip;
-import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.Property;
-import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.PropertyType;
-import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.ValuePropertyPair;
-import gov.va.oia.terminology.converters.sharedUtils.stats.ConverterUUID;
-
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -24,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.math.BigDecimal;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,6 +30,23 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.dwfa.cement.ArchitectonicAuxiliary;
 import org.ihtsdo.etypes.EConcept;
 
+import gov.va.med.term.ndf.propertyTypes.PT_Annotations;
+import gov.va.med.term.ndf.propertyTypes.PT_ContentVersion;
+import gov.va.med.term.ndf.propertyTypes.PT_ContentVersion.ContentVersion;
+import gov.va.med.term.ndf.propertyTypes.PT_Descriptions;
+import gov.va.med.term.ndf.propertyTypes.PT_IDs;
+import gov.va.med.term.ndf.propertyTypes.PT_RefSets;
+import gov.va.med.term.ndf.util.AlphanumComparator;
+import gov.va.oia.terminology.converters.sharedUtils.ConsoleUtil;
+import gov.va.oia.terminology.converters.sharedUtils.ConverterBaseMojo;
+import gov.va.oia.terminology.converters.sharedUtils.EConceptUtility;
+import gov.va.oia.terminology.converters.sharedUtils.EConceptUtility.DescriptionType;
+import gov.va.oia.terminology.converters.sharedUtils.Unzip;
+import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.Property;
+import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.PropertyType;
+import gov.va.oia.terminology.converters.sharedUtils.propertyTypes.ValuePropertyPair;
+import gov.va.oia.terminology.converters.sharedUtils.stats.ConverterUUID;
+
 /**
  * Goal which converts NDF data into the workbench jbin format
  */
@@ -56,6 +57,7 @@ public class NDFImportMojo extends ConverterBaseMojo
 
 	private EConceptUtility eConceptUtil_;
 	private DataOutputStream dos;
+	private HashMap<String, String> badColumnFix = new HashMap<>();
 
 	@Override
 	public void execute() throws MojoExecutionException
@@ -85,10 +87,19 @@ public class NDFImportMojo extends ConverterBaseMojo
 				version = 2;
 				time = parseOne.parse(converterResultVersion.substring(0, 8)).getTime();
 			}
-			else if (converterResultVersion.startsWith("2013-08-28") || converterResultVersion.startsWith("2013-12-20") || converterResultVersion.startsWith("2014-04-24"))
+			else if (converterResultVersion.startsWith("2013-08-28") || converterResultVersion.startsWith("2013-12-20") 
+					|| converterResultVersion.startsWith("2014-04-24") || converterResultVersion.startsWith("2015-05"))
 			{
 				version = 2;
-				time = parseTwo.parse(converterResultVersion.substring(0, 11)).getTime();
+				
+				try
+				{
+					time = parseTwo.parse(converterResultVersion.substring(0, 11)).getTime();
+				}
+				catch (ParseException e)
+				{
+					time = parseOne.parse(converterResultVersion.substring(0, 8)).getTime();
+				}
 			}
 			else
 			{
@@ -218,6 +229,14 @@ public class NDFImportMojo extends ConverterBaseMojo
 
 			for (String name : db.getColumnNames())
 			{
+				if (name.endsWith(",,,"))
+				{
+					//starting with release 2015-05 they foobar'ed the MARK column....
+					String fixed = name.substring(0,  name.indexOf(","));
+					System.out.println("Fixing bad data - they provided column " + name + " repaired to " + fixed);
+					badColumnFix.put(name,  fixed);
+					name = fixed;
+				}
 				Property p = null;
 				for (PropertyType pt : allPropertyTypes)
 				{
@@ -428,7 +447,7 @@ public class NDFImportMojo extends ConverterBaseMojo
 				boolean retired = false;
 				for (String type : row.keySet())
 				{
-					Property p = propertyMap.get(type);
+					Property p = propertyMap.get((badColumnFix.containsKey(type) ? badColumnFix.get(type) : type));
 					String value = asString(row.get(type));
 					if (value == null || value.length() == 0)
 					{
