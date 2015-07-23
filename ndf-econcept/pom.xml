@@ -6,7 +6,7 @@
 	<groupId>gov.va.oia.terminology.converters</groupId>
 	<artifactId>ndf-econcept</artifactId>
 	<!-- this should be set to ${sourceData.version}-loader-${loader.version} but that doesn't appease the maven gods that know best.... -->
-	<version>2015-05-fixed-loader-2.0</version>
+	<version>2015-05-fixed-loader-2.1-SNAPSHOT</version>
 	
 	<packaging>pom</packaging>
 	<name>ndf-econcept</name>
@@ -14,7 +14,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<sourceData.version>2015-05-fixed</sourceData.version>
-		<loader.version>2.0</loader.version>
+		<loader.version>2.1-SNAPSHOT</loader.version>
 	</properties>
 
 	<build>
